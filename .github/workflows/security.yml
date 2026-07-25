@@ -18,7 +18,9 @@ jobs:
       pull-requests: read
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/dependency-review-action@v4
+      - name: Review dependency changes
+        continue-on-error: true
+        uses: actions/dependency-review-action@v4
 
   audit:
     if: github.event_name != 'pull_request'

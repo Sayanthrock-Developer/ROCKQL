@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: read
+  issues: write
+  pull-requests: write
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -26,7 +28,23 @@ jobs:
           components: rustfmt, clippy
 
       - name: Check formatting
-        run: cargo fmt --all --check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cargo fmt --all
+          if ! git diff --quiet; then
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              {
+                echo "### rustfmt changes required"
+                echo
+                echo '```diff'
+                git diff -- '*.rs'
+                echo '```'
+              } > /tmp/rustfmt-comment.md
+              gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/rustfmt-comment.md
+            fi
+            exit 1
+          fi
 
       - name: Run Clippy
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings

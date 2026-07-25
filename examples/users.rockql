@@ -1,0 +1,1 @@
+from users | filter active == true | select {id, name, email} | take 10

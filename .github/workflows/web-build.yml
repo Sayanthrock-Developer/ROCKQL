@@ -1,0 +1,48 @@
+name: Web build
+
+on:
+  pull_request:
+    paths:
+      - "apps/playground/**"
+      - "bindings/rockql-js/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/web-build.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/playground/**"
+      - "bindings/rockql-js/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/web-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect playground
+        id: playground
+        run: |
+          if [ -f package.json ] && [ -d apps/playground ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Playground is not implemented yet; build skipped."
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.playground.outputs.enabled == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        if: steps.playground.outputs.enabled == 'true'
+      - run: npm run typecheck --if-present
+        if: steps.playground.outputs.enabled == 'true'
+      - run: npm run build
+        if: steps.playground.outputs.enabled == 'true'

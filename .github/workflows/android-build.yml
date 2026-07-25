@@ -1,0 +1,56 @@
+name: Android build
+
+on:
+  pull_request:
+    paths:
+      - "apps/android/**"
+      - "gradle/**"
+      - "gradlew"
+      - "gradlew.bat"
+      - "settings.gradle.kts"
+      - "build.gradle.kts"
+      - ".github/workflows/android-build.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/android/**"
+      - "gradle/**"
+      - "gradlew"
+      - "gradlew.bat"
+      - "settings.gradle.kts"
+      - "build.gradle.kts"
+      - ".github/workflows/android-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect Android application
+        id: android
+        run: |
+          if [ -f gradlew ] && [ -d apps/android ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Android application is not implemented yet; build skipped."
+          fi
+      - uses: actions/setup-java@v4
+        if: steps.android.outputs.enabled == 'true'
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - uses: gradle/actions/setup-gradle@v4
+        if: steps.android.outputs.enabled == 'true'
+      - run: ./gradlew :apps:android:lintDebug :apps:android:testDebugUnitTest :apps:android:assembleDebug
+        if: steps.android.outputs.enabled == 'true'
+      - uses: actions/upload-artifact@v4
+        if: steps.android.outputs.enabled == 'true'
+        with:
+          name: rockql-android-debug
+          path: apps/android/build/outputs/apk/debug/*.apk

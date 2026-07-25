@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: rockql-linux-x64
+            binary: rockql
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            artifact: rockql-linux-arm64
+            binary: rockql
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: rockql-windows-x64
+            binary: rockql.exe
+          - os: macos-13
+            target: x86_64-apple-darwin
+            artifact: rockql-macos-x64
+            binary: rockql
+          - os: macos-14
+            target: aarch64-apple-darwin
+            artifact: rockql-macos-arm64
+            binary: rockql
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - run: cargo build --release --target ${{ matrix.target }} -p rockql-cli
+      - name: Stage binary
+        shell: python
+        run: |
+          import pathlib
+          import shutil
+          source = pathlib.Path("target") / "${{ matrix.target }}" / "release" / "${{ matrix.binary }}"
+          destination = pathlib.Path("dist") / "${{ matrix.artifact }}" / "${{ matrix.binary }}"
+          destination.parent.mkdir(parents=True, exist_ok=True)
+          shutil.copy2(source, destination)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Generate checksums
+        run: find dist -type f -exec sha256sum {} + > dist/SHA256SUMS
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/**/rockql
+            dist/**/rockql.exe
+            dist/SHA256SUMS

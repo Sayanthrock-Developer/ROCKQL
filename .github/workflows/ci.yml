@@ -6,7 +6,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -19,29 +19,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.80.1
         with:
           components: rustfmt, clippy
 
-      - name: Apply formatting on draft branch
-        run: |
-          cargo fmt --all
-          if ! git diff --quiet; then
-            if [ "${{ github.event_name }}" = "pull_request" ]; then
-              git config user.name "github-actions[bot]"
-              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-              git add -- '*.rs'
-              git commit -m "style: apply rustfmt"
-              git push origin "HEAD:${{ github.head_ref }}"
-            else
-              git diff --check
-              exit 1
-            fi
-          fi
+      - name: Check formatting
+        run: cargo fmt --all --check
 
       - name: Run Clippy
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings

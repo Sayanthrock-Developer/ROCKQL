@@ -1,0 +1,5 @@
+from employees
+filter salary > 50_000
+derive yearly_salary = salary * 12
+sort {-yearly_salary}
+take 10

@@ -30,25 +30,23 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all --check
 
-      - name: Apply Clippy fixes on draft branch
+      - name: Capture Clippy diagnostics
         run: |
-          cargo clippy --fix --workspace --all-targets --all-features --allow-dirty --allow-staged || true
-          cargo fmt --all
-          if ! git diff --quiet; then
-            if [ "${{ github.event_name }}" = "pull_request" ]; then
-              git config user.name "github-actions[bot]"
-              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-              git add -- '*.rs'
-              git commit -m "style: apply Clippy fixes"
-              git push origin "HEAD:${{ github.head_ref }}"
-            else
-              git diff --check
-              exit 1
-            fi
+          set +e
+          cargo clippy --workspace --all-targets --all-features -- -D warnings > clippy-diagnostics.txt 2>&1
+          status=$?
+          set -e
+
+          if [ "$status" -ne 0 ] && [ "${{ github.event_name }}" = "pull_request" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add clippy-diagnostics.txt
+            git commit -m "ci: capture Clippy diagnostics"
+            git push origin "HEAD:${{ github.head_ref }}"
           fi
 
-      - name: Run Clippy
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+          cat clippy-diagnostics.txt
+          exit "$status"
 
       - name: Run tests
         run: cargo test --workspace --all-features

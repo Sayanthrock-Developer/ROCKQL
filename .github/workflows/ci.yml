@@ -6,7 +6,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -19,34 +19,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@1.80.1
+        uses: dtolnay/rust-toolchain@1.97.1
         with:
           components: rustfmt, clippy
 
       - name: Check formatting
         run: cargo fmt --all --check
 
-      - name: Capture Clippy diagnostics
-        run: |
-          set +e
-          cargo clippy --workspace --all-targets --all-features -- -D warnings > clippy-diagnostics.txt 2>&1
-          status=$?
-          set -e
-
-          if [ "$status" -ne 0 ] && [ "${{ github.event_name }}" = "pull_request" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add clippy-diagnostics.txt
-            git commit -m "ci: capture Clippy diagnostics"
-            git push origin "HEAD:${{ github.head_ref }}"
-          fi
-
-          cat clippy-diagnostics.txt
-          exit "$status"
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
       - name: Run tests
         run: cargo test --workspace --all-features

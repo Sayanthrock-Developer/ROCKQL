@@ -39,7 +39,9 @@ impl FromStr for Dialect {
 pub enum SqlError {
     #[error("query must start with a `from` transformation")]
     MissingFrom,
-    #[error("only one `from` transformation is currently supported (line {line}, column {column})")]
+    #[error(
+        "only one `from` transformation is currently supported (line {line}, column {column})"
+    )]
     MultipleFrom { line: usize, column: usize },
 }
 
@@ -245,21 +247,18 @@ mod tests {
 
     #[test]
     fn compiles_boolean_filter_for_sqlite() {
-        let query = parse("from users | filter active == true | take 10")
-            .expect("query should parse");
+        let query =
+            parse("from users | filter active == true | take 10").expect("query should parse");
 
         let sql = compile(&query, Dialect::Sqlite).expect("query should compile");
 
-        assert_eq!(
-            sql,
-            "SELECT *\nFROM users\nWHERE active = TRUE\nLIMIT 10;"
-        );
+        assert_eq!(sql, "SELECT *\nFROM users\nWHERE active = TRUE\nLIMIT 10;");
     }
 
     #[test]
     fn preserves_keywords_inside_strings() {
-        let query = parse("from events | filter label == \"true and false\"")
-            .expect("query should parse");
+        let query =
+            parse("from events | filter label == \"true and false\"").expect("query should parse");
 
         let sql = compile(&query, Dialect::Generic).expect("query should compile");
 

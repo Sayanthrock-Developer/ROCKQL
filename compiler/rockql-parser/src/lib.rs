@@ -72,7 +72,12 @@ fn split_segments(source: &str) -> Vec<Segment> {
 
         for (byte_index, character) in line.char_indices() {
             if character == '|' {
-                push_segment(&mut segments, &line[start..byte_index], line_index + 1, start);
+                push_segment(
+                    &mut segments,
+                    &line[start..byte_index],
+                    line_index + 1,
+                    start,
+                );
                 start = byte_index + character.len_utf8();
             }
         }
@@ -157,10 +162,7 @@ fn parse_select(rest: &str, span: Span) -> Result<Transform, Diagnostic> {
 
 fn parse_derive(rest: &str, span: Span) -> Result<Transform, Diagnostic> {
     let Some((name, expression)) = rest.split_once('=') else {
-        return Err(Diagnostic::new(
-            "expected `derive name = expression`",
-            span,
-        ));
+        return Err(Diagnostic::new("expected `derive name = expression`", span));
     };
 
     let name = name.trim();
@@ -181,12 +183,7 @@ fn parse_sort(rest: &str, span: Span) -> Result<Transform, Diagnostic> {
     let inner = match (rest.strip_prefix('{'), rest.strip_suffix('}')) {
         (Some(without_open), Some(_)) => &without_open[..without_open.len().saturating_sub(1)],
         (None, None) => rest,
-        _ => {
-            return Err(Diagnostic::new(
-                "sort braces must be balanced",
-                span,
-            ))
-        }
+        _ => return Err(Diagnostic::new("sort braces must be balanced", span)),
     };
 
     let items = inner
@@ -217,9 +214,10 @@ fn parse_sort(rest: &str, span: Span) -> Result<Transform, Diagnostic> {
 fn parse_take(rest: &str, span: Span) -> Result<Transform, Diagnostic> {
     require_value(rest, "expected a row count after `take`", span)?;
 
-    let count = rest.replace('_', "").parse::<u64>().map_err(|_| {
-        Diagnostic::new("`take` requires a non-negative integer row count", span)
-    })?;
+    let count = rest
+        .replace('_', "")
+        .parse::<u64>()
+        .map_err(|_| Diagnostic::new("`take` requires a non-negative integer row count", span))?;
 
     Ok(Transform::Take { count })
 }
@@ -253,8 +251,8 @@ mod tests {
 
     #[test]
     fn parses_pipe_separated_pipeline() {
-        let query = parse("from users | filter active == true | take 10")
-            .expect("query should parse");
+        let query =
+            parse("from users | filter active == true | take 10").expect("query should parse");
 
         assert_eq!(query.transforms.len(), 3);
         assert_eq!(query.transforms[1].span, Span::new(1, 14));
@@ -262,8 +260,8 @@ mod tests {
 
     #[test]
     fn reports_line_and_column() {
-        let diagnostics = parse("from users\n  unknown value")
-            .expect_err("unknown transformation should fail");
+        let diagnostics =
+            parse("from users\n  unknown value").expect_err("unknown transformation should fail");
 
         assert_eq!(diagnostics[0].span, Span::new(2, 3));
         assert!(diagnostics[0].message.contains("unknown transformation"));
@@ -271,12 +269,9 @@ mod tests {
 
     #[test]
     fn formats_to_canonical_multiline_source() {
-        let formatted = format_source("from users | sort {-created_at} | take 5")
-            .expect("query should format");
+        let formatted =
+            format_source("from users | sort {-created_at} | take 5").expect("query should format");
 
-        assert_eq!(
-            formatted,
-            "from users\nsort {-created_at}\ntake 5\n"
-        );
+        assert_eq!(formatted, "from users\nsort {-created_at}\ntake 5\n");
     }
 }

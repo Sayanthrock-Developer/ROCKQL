@@ -49,7 +49,11 @@ fn run() -> Result<(), String> {
         }
         "help" | "--help" | "-h" => print_help(),
         "--version" | "-V" => println!("rockql {}", env!("CARGO_PKG_VERSION")),
-        other => return Err(format!("unknown command `{other}`\n\nRun `rockql help` for usage.")),
+        other => {
+            return Err(format!(
+                "unknown command `{other}`\n\nRun `rockql help` for usage."
+            ))
+        }
     }
 
     Ok(())

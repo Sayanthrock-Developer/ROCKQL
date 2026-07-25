@@ -202,7 +202,11 @@ fn normalize_expression(expression: &str, dialect: Dialect) -> String {
 }
 
 fn boolean_literal(value: bool, _dialect: Dialect) -> &'static str {
-    if value { "TRUE" } else { "FALSE" }
+    if value {
+        "TRUE"
+    } else {
+        "FALSE"
+    }
 }
 
 fn split_top_level_coalesce(expression: &str) -> Option<(&str, &str)> {
@@ -259,8 +263,8 @@ mod tests {
 
     #[test]
     fn normalizes_boolean_and_equality() {
-        let query = parse("from users | filter active == true | take 10")
-            .expect("query should parse");
+        let query =
+            parse("from users | filter active == true | take 10").expect("query should parse");
         let sql = compile(&query, Dialect::Sqlite).expect("query should compile");
         assert!(sql.contains("WHERE active = TRUE"));
     }

@@ -162,18 +162,13 @@ fn parse_transform(segment: &Segment) -> Result<Transform, ParseError> {
     }
 
     let keyword = segment.text.split_whitespace().next().unwrap_or_default();
-    Err(ParseError::new(
-        format!("unknown transformation `{keyword}`"),
-        segment.span,
+    Err(
+        ParseError::new(format!("unknown transformation `{keyword}`"), segment.span)
+            .with_hint("MVP transformations: filter, select, derive, sort, take"),
     )
-    .with_hint("MVP transformations: filter, select, derive, sort, take"))
 }
 
-fn parse_expression_list(
-    text: &str,
-    span: Span,
-    transform: &str,
-) -> Result<Vec<Expr>, ParseError> {
+fn parse_expression_list(text: &str, span: Span, transform: &str) -> Result<Vec<Expr>, ParseError> {
     let body = strip_optional_braces(text, span, transform)?;
     let mut expressions = Vec::new();
     for item in split_commas(body) {
@@ -252,7 +247,10 @@ fn split_assignment(text: &str) -> Option<(&str, &str)> {
             continue;
         }
         if character == '=' && quote.is_none() {
-            let previous = index.checked_sub(1).and_then(|value| bytes.get(value)).copied();
+            let previous = index
+                .checked_sub(1)
+                .and_then(|value| bytes.get(value))
+                .copied();
             let next = bytes.get(index + 1).copied();
             if previous.is_some_and(|value| matches!(value, b'=' | b'!' | b'<' | b'>'))
                 || next == Some(b'=')
@@ -354,7 +352,12 @@ fn split_segments(source: &str) -> Vec<Segment> {
                 continue;
             }
             if character == '|' && quote.is_none() {
-                push_segment(&mut segments, &line[start..index], line_index + 1, start + 1);
+                push_segment(
+                    &mut segments,
+                    &line[start..index],
+                    line_index + 1,
+                    start + 1,
+                );
                 start = index + 1;
             }
         }
@@ -392,8 +395,8 @@ mod tests {
 
     #[test]
     fn parses_pipe_pipeline() {
-        let query = parse("from users | filter active == true | take 10")
-            .expect("query should parse");
+        let query =
+            parse("from users | filter active == true | take 10").expect("query should parse");
         assert_eq!(query.transforms.len(), 2);
     }
 

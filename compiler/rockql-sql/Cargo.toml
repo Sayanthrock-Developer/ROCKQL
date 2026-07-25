@@ -9,3 +9,6 @@ rust-version.workspace = true
 [dependencies]
 rockql-ast = { path = "../rockql-ast" }
 thiserror.workspace = true
+
+[dev-dependencies]
+rockql-parser = { path = "../rockql-parser" }

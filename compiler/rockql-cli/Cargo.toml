@@ -1,0 +1,20 @@
+[package]
+name = "rockql-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Readable data pipelines compiled to SQL"
+
+[[bin]]
+name = "rockql"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+rockql-ast = { path = "../rockql-ast" }
+rockql-parser = { path = "../rockql-parser" }
+rockql-sql = { path = "../rockql-sql" }
+serde_json.workspace = true

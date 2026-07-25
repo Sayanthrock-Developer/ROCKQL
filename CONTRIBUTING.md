@@ -6,7 +6,7 @@ RockQL is early-stage software. Small, focused pull requests with tests are pref
 
 Requirements:
 
-- Rust 1.80.1 or a compatible newer toolchain.
+- Rust 1.97.1 or a compatible newer toolchain.
 - Git.
 
 ```bash

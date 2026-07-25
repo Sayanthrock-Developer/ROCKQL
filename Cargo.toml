@@ -1,0 +1,16 @@
+[workspace]
+members = [
+    "compiler/rockql-ast",
+    "compiler/rockql-parser",
+    "compiler/rockql-sql",
+    "compiler/rockql-formatter",
+    "compiler/rockql-cli",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/Sayanthrock-Developer/ROCKQL"
+rust-version = "1.76"

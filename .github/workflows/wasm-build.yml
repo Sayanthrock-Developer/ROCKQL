@@ -1,0 +1,50 @@
+name: WebAssembly build
+
+on:
+  pull_request:
+    paths:
+      - "bindings/rockql-js/**"
+      - "compiler/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/wasm-build.yml"
+  push:
+    branches: [main]
+    paths:
+      - "bindings/rockql-js/**"
+      - "compiler/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/wasm-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect WebAssembly binding
+        id: wasm
+        run: |
+          if [ -f bindings/rockql-js/Cargo.toml ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "WebAssembly binding is not implemented yet; build skipped."
+          fi
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.wasm.outputs.enabled == 'true'
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: taiki-e/install-action@wasm-pack
+        if: steps.wasm.outputs.enabled == 'true'
+      - run: wasm-pack build bindings/rockql-js --target web --release
+        if: steps.wasm.outputs.enabled == 'true'
+      - uses: actions/upload-artifact@v4
+        if: steps.wasm.outputs.enabled == 'true'
+        with:
+          name: rockql-wasm
+          path: bindings/rockql-js/pkg

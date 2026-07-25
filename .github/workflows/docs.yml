@@ -1,0 +1,45 @@
+name: Documentation
+
+on:
+  pull_request:
+    paths:
+      - "README.md"
+      - "docs/**"
+      - "CONTRIBUTING.md"
+      - "CODE_OF_CONDUCT.md"
+      - "SECURITY.md"
+      - ".github/workflows/docs.yml"
+  push:
+    branches: [main]
+    paths:
+      - "README.md"
+      - "docs/**"
+      - "CONTRIBUTING.md"
+      - "CODE_OF_CONDUCT.md"
+      - "SECURITY.md"
+      - ".github/workflows/docs.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Markdown whitespace
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          files = [Path("README.md"), Path("CONTRIBUTING.md"), Path("CODE_OF_CONDUCT.md"), Path("SECURITY.md")]
+          files.extend(Path("docs").rglob("*.md"))
+          failures = []
+          for path in files:
+              for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                  if line != line.rstrip():
+                      failures.append(f"{path}:{number}: trailing whitespace")
+                  if "\t" in line:
+                      failures.append(f"{path}:{number}: tab character")
+          if failures:
+              raise SystemExit("\n".join(failures))
+          PY

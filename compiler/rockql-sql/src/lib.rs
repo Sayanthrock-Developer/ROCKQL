@@ -152,34 +152,7 @@ fn compile_sort_item(item: &SortItem, dialect: Dialect) -> String {
 }
 
 fn normalize_expression(expression: &str, _dialect: Dialect) -> String {
-    let without_numeric_separators = remove_numeric_separators(expression);
-    let operators = without_numeric_separators
-        .replace("!=", "<>")
-        .replace("==", "=");
-    normalize_keywords(&operators)
-}
-
-fn remove_numeric_separators(value: &str) -> String {
-    let characters = value.chars().collect::<Vec<_>>();
-    let mut output = String::with_capacity(value.len());
-
-    for (index, character) in characters.iter().enumerate() {
-        let is_numeric_separator = *character == '_'
-            && index > 0
-            && index + 1 < characters.len()
-            && characters[index - 1].is_ascii_digit()
-            && characters[index + 1].is_ascii_digit();
-
-        if !is_numeric_separator {
-            output.push(*character);
-        }
-    }
-
-    output
-}
-
-fn normalize_keywords(value: &str) -> String {
-    let mut output = String::with_capacity(value.len());
+    let mut output = String::with_capacity(expression.len());
     let mut word = String::new();
     let mut quote = None;
 
@@ -200,12 +173,17 @@ fn normalize_keywords(value: &str) -> String {
         word.clear();
     };
 
-    for character in value.chars() {
+    let chars: Vec<char> = expression.chars().collect();
+    let mut i = 0;
+    while i < chars.len() {
+        let character = chars[i];
+
         if let Some(active_quote) = quote {
             output.push(character);
             if character == active_quote {
                 quote = None;
             }
+            i += 1;
             continue;
         }
 
@@ -213,12 +191,32 @@ fn normalize_keywords(value: &str) -> String {
             flush_word(&mut output, &mut word);
             output.push(character);
             quote = Some(character);
-        } else if character.is_ascii_alphanumeric() || character == '_' {
+        } else if character.is_ascii_alphanumeric() {
             word.push(character);
+        } else if character == '_' {
+            let is_numeric_separator = !word.is_empty()
+                && word.chars().last().unwrap().is_ascii_digit()
+                && i + 1 < chars.len()
+                && chars[i + 1].is_ascii_digit();
+
+            if is_numeric_separator {
+                // skip the numeric separator
+            } else {
+                word.push(character);
+            }
         } else {
             flush_word(&mut output, &mut word);
-            output.push(character);
+            if character == '!' && i + 1 < chars.len() && chars[i + 1] == '=' {
+                output.push_str("<>");
+                i += 1;
+            } else if character == '=' && i + 1 < chars.len() && chars[i + 1] == '=' {
+                output.push('=');
+                i += 1;
+            } else {
+                output.push(character);
+            }
         }
+        i += 1;
     }
 
     flush_word(&mut output, &mut word);
@@ -263,5 +261,15 @@ mod tests {
         let sql = compile(&query, Dialect::Generic).expect("query should compile");
 
         assert!(sql.contains("label = \"true and false\""));
+    }
+
+    #[test]
+    fn preserves_operators_and_numeric_separators_inside_strings() {
+        let query = parse("from events | filter message == \"user_1_000 == active !=\"")
+            .expect("query should parse");
+
+        let sql = compile(&query, Dialect::Generic).expect("query should compile");
+
+        assert!(sql.contains("message = \"user_1_000 == active !=\""));
     }
 }

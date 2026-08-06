@@ -1,0 +1,3 @@
+## 2024-05-24 - Optimize remove_numeric_separators
+**Learning:** Iterating over `chars()` and collecting them into a `Vec<char>` for simple ASCII manipulation (like removing underscores between digits) causes unnecessary overhead from UTF-8 decoding and intermediate allocations.
+**Action:** Use `.as_bytes()` to work directly with the underlying UTF-8 representation when dealing with ASCII characters, and avoid allocations entirely if the character isn't present by checking `.contains('_')` first. Reconstruct the string using `unsafe { String::from_utf8_unchecked(output) }` since removing ASCII characters from a valid UTF-8 string is inherently safe and preserves validity.

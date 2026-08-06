@@ -160,22 +160,31 @@ fn normalize_expression(expression: &str, _dialect: Dialect) -> String {
 }
 
 fn remove_numeric_separators(value: &str) -> String {
-    let characters = value.chars().collect::<Vec<_>>();
-    let mut output = String::with_capacity(value.len());
+    // ⚡ Bolt: Fast path to avoid allocation and iteration when there are no separators
+    if !value.contains('_') {
+        return value.to_owned();
+    }
 
-    for (index, character) in characters.iter().enumerate() {
-        let is_numeric_separator = *character == '_'
+    // ⚡ Bolt: Iterate over bytes instead of chars.
+    // '_' and ASCII digits are exactly 1 byte in UTF-8, so we can avoid decoding overhead.
+    let bytes = value.as_bytes();
+    let mut output = Vec::with_capacity(value.len());
+
+    for (index, &byte) in bytes.iter().enumerate() {
+        let is_numeric_separator = byte == b'_'
             && index > 0
-            && index + 1 < characters.len()
-            && characters[index - 1].is_ascii_digit()
-            && characters[index + 1].is_ascii_digit();
+            && index + 1 < bytes.len()
+            && bytes[index - 1].is_ascii_digit()
+            && bytes[index + 1].is_ascii_digit();
 
         if !is_numeric_separator {
-            output.push(*character);
+            output.push(byte);
         }
     }
 
-    output
+    // SAFETY: We only remove ASCII '_' characters, which are exactly 1 byte.
+    // Removing an ASCII character from a valid UTF-8 string preserves its validity.
+    unsafe { String::from_utf8_unchecked(output) }
 }
 
 fn normalize_keywords(value: &str) -> String {

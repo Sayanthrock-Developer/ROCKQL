@@ -160,47 +160,64 @@ fn normalize_expression(expression: &str, _dialect: Dialect) -> String {
 }
 
 fn remove_numeric_separators(value: &str) -> String {
-    let characters = value.chars().collect::<Vec<_>>();
+    // ⚡ Bolt Optimization: Avoid converting the entire string to Vec<char>.
+    // Operate on bytes and use a fast-path skip since digits/underscores are 1-byte ASCII.
+    let bytes = value.as_bytes();
+
+    if !bytes.contains(&b'_') {
+        return value.to_string();
+    }
+
     let mut output = String::with_capacity(value.len());
+    let mut start = 0;
 
-    for (index, character) in characters.iter().enumerate() {
-        let is_numeric_separator = *character == '_'
-            && index > 0
-            && index + 1 < characters.len()
-            && characters[index - 1].is_ascii_digit()
-            && characters[index + 1].is_ascii_digit();
-
-        if !is_numeric_separator {
-            output.push(*character);
+    for (i, &b) in bytes.iter().enumerate() {
+        if b == b'_'
+            && i > 0
+            && i + 1 < bytes.len()
+            && bytes[i - 1].is_ascii_digit()
+            && bytes[i + 1].is_ascii_digit()
+        {
+            output.push_str(&value[start..i]);
+            start = i + 1;
         }
     }
+    output.push_str(&value[start..]);
 
     output
 }
 
 fn normalize_keywords(value: &str) -> String {
+    // ⚡ Bolt Optimization: Avoid repeatedly allocating strings for words and `to_ascii_lowercase()`.
+    // We track start/end indices directly into the input `value` and use `eq_ignore_ascii_case`.
     let mut output = String::with_capacity(value.len());
-    let mut word = String::new();
+    let mut word_start = None;
     let mut quote = None;
 
-    let flush_word = |output: &mut String, word: &mut String| {
-        if word.is_empty() {
+    let flush_word = |output: &mut String, start: usize, end: usize, value: &str| {
+        if start == end {
             return;
         }
 
-        match word.to_ascii_lowercase().as_str() {
-            "true" => output.push_str("TRUE"),
-            "false" => output.push_str("FALSE"),
-            "null" => output.push_str("NULL"),
-            "and" => output.push_str("AND"),
-            "or" => output.push_str("OR"),
-            "not" => output.push_str("NOT"),
-            _ => output.push_str(word),
+        let word = &value[start..end];
+        if word.eq_ignore_ascii_case("true") {
+            output.push_str("TRUE");
+        } else if word.eq_ignore_ascii_case("false") {
+            output.push_str("FALSE");
+        } else if word.eq_ignore_ascii_case("null") {
+            output.push_str("NULL");
+        } else if word.eq_ignore_ascii_case("and") {
+            output.push_str("AND");
+        } else if word.eq_ignore_ascii_case("or") {
+            output.push_str("OR");
+        } else if word.eq_ignore_ascii_case("not") {
+            output.push_str("NOT");
+        } else {
+            output.push_str(word);
         }
-        word.clear();
     };
 
-    for character in value.chars() {
+    for (i, character) in value.char_indices() {
         if let Some(active_quote) = quote {
             output.push(character);
             if character == active_quote {
@@ -210,18 +227,28 @@ fn normalize_keywords(value: &str) -> String {
         }
 
         if character == '\'' || character == '"' {
-            flush_word(&mut output, &mut word);
+            if let Some(start) = word_start {
+                flush_word(&mut output, start, i, value);
+                word_start = None;
+            }
             output.push(character);
             quote = Some(character);
         } else if character.is_ascii_alphanumeric() || character == '_' {
-            word.push(character);
+            if word_start.is_none() {
+                word_start = Some(i);
+            }
         } else {
-            flush_word(&mut output, &mut word);
+            if let Some(start) = word_start {
+                flush_word(&mut output, start, i, value);
+                word_start = None;
+            }
             output.push(character);
         }
     }
 
-    flush_word(&mut output, &mut word);
+    if let Some(start) = word_start {
+        flush_word(&mut output, start, value.len(), value);
+    }
     output
 }
 

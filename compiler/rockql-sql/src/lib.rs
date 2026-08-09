@@ -152,72 +152,34 @@ fn compile_sort_item(item: &SortItem, dialect: Dialect) -> String {
 }
 
 fn normalize_expression(expression: &str, _dialect: Dialect) -> String {
-    let without_numeric_separators = remove_numeric_separators(expression);
-    let operators = without_numeric_separators
-        .replace("!=", "<>")
-        .replace("==", "=");
-    normalize_keywords(&operators)
-}
-
-fn remove_numeric_separators(value: &str) -> String {
-    // ⚡ Bolt Optimization: Avoid converting the entire string to Vec<char>.
-    // Operate on bytes and use a fast-path skip since digits/underscores are 1-byte ASCII.
-    let bytes = value.as_bytes();
-
-    if !bytes.contains(&b'_') {
-        return value.to_string();
-    }
-
-    let mut output = String::with_capacity(value.len());
-    let mut start = 0;
-
-    for (i, &b) in bytes.iter().enumerate() {
-        if b == b'_'
-            && i > 0
-            && i + 1 < bytes.len()
-            && bytes[i - 1].is_ascii_digit()
-            && bytes[i + 1].is_ascii_digit()
-        {
-            output.push_str(&value[start..i]);
-            start = i + 1;
-        }
-    }
-    output.push_str(&value[start..]);
-
-    output
-}
-
-fn normalize_keywords(value: &str) -> String {
-    // ⚡ Bolt Optimization: Avoid repeatedly allocating strings for words and `to_ascii_lowercase()`.
-    // We track start/end indices directly into the input `value` and use `eq_ignore_ascii_case`.
-    let mut output = String::with_capacity(value.len());
+    // ⚡ Bolt Optimization: Single-pass expression normalization.
+    // Avoids 3 intermediate String allocations (`remove_numeric_separators`,
+    // two `.replace()` calls) and consolidates string scanning.
+    let mut output = String::with_capacity(expression.len());
     let mut word_start = None;
     let mut quote = None;
 
-    let flush_word = |output: &mut String, start: usize, end: usize, value: &str| {
-        if start == end {
-            return;
-        }
-
-        let word = &value[start..end];
+    let flush_word = |output: &mut String, start: usize| {
+        let word = &output[start..];
         if word.eq_ignore_ascii_case("true") {
-            output.push_str("TRUE");
+            output.replace_range(start.., "TRUE");
         } else if word.eq_ignore_ascii_case("false") {
-            output.push_str("FALSE");
+            output.replace_range(start.., "FALSE");
         } else if word.eq_ignore_ascii_case("null") {
-            output.push_str("NULL");
+            output.replace_range(start.., "NULL");
         } else if word.eq_ignore_ascii_case("and") {
-            output.push_str("AND");
+            output.replace_range(start.., "AND");
         } else if word.eq_ignore_ascii_case("or") {
-            output.push_str("OR");
+            output.replace_range(start.., "OR");
         } else if word.eq_ignore_ascii_case("not") {
-            output.push_str("NOT");
-        } else {
-            output.push_str(word);
+            output.replace_range(start.., "NOT");
         }
     };
 
-    for (i, character) in value.char_indices() {
+    let bytes = expression.as_bytes();
+    let mut chars = expression.char_indices().peekable();
+
+    while let Some((i, character)) = chars.next() {
         if let Some(active_quote) = quote {
             output.push(character);
             if character == active_quote {
@@ -228,27 +190,57 @@ fn normalize_keywords(value: &str) -> String {
 
         if character == '\'' || character == '"' {
             if let Some(start) = word_start {
-                flush_word(&mut output, start, i, value);
+                flush_word(&mut output, start);
                 word_start = None;
             }
             output.push(character);
             quote = Some(character);
         } else if character.is_ascii_alphanumeric() || character == '_' {
-            if word_start.is_none() {
-                word_start = Some(i);
+            // Handle numeric separators
+            if character == '_'
+                && i > 0
+                && i + 1 < bytes.len()
+                && bytes[i - 1].is_ascii_digit()
+                && bytes[i + 1].is_ascii_digit()
+            {
+                continue; // Skip the underscore
             }
-        } else {
-            if let Some(start) = word_start {
-                flush_word(&mut output, start, i, value);
-                word_start = None;
+
+            if word_start.is_none() {
+                word_start = Some(output.len());
             }
             output.push(character);
+        } else {
+            if let Some(start) = word_start {
+                flush_word(&mut output, start);
+                word_start = None;
+            }
+
+            // Handle operators != and ==
+            if character == '!' {
+                if let Some(&(_, '=')) = chars.peek() {
+                    output.push_str("<>");
+                    chars.next(); // Consume '='
+                } else {
+                    output.push(character);
+                }
+            } else if character == '=' {
+                if let Some(&(_, '=')) = chars.peek() {
+                    output.push('=');
+                    chars.next(); // Consume second '='
+                } else {
+                    output.push(character);
+                }
+            } else {
+                output.push(character);
+            }
         }
     }
 
     if let Some(start) = word_start {
-        flush_word(&mut output, start, value.len(), value);
+        flush_word(&mut output, start);
     }
+
     output
 }
 

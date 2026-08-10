@@ -214,10 +214,36 @@ fn parse_sort(rest: &str, span: Span) -> Result<Transform, Diagnostic> {
 fn parse_take(rest: &str, span: Span) -> Result<Transform, Diagnostic> {
     require_value(rest, "expected a row count after `take`", span)?;
 
-    let count = rest
-        .replace('_', "")
-        .parse::<u64>()
-        .map_err(|_| Diagnostic::new("`take` requires a non-negative integer row count", span))?;
+    // ⚡ Bolt Optimization: Manually parse the integer without allocating an intermediate
+    // String via `.replace('_', "")`. This directly iterates over bytes, ignoring `_`.
+    let mut count: u64 = 0;
+    let mut has_digits = false;
+    for &byte in rest.as_bytes() {
+        if byte == b'_' {
+            continue;
+        } else if byte.is_ascii_digit() {
+            has_digits = true;
+            let digit = (byte - b'0') as u64;
+            count = count
+                .checked_mul(10)
+                .and_then(|c| c.checked_add(digit))
+                .ok_or_else(|| {
+                    Diagnostic::new("`take` requires a non-negative integer row count", span)
+                })?;
+        } else {
+            return Err(Diagnostic::new(
+                "`take` requires a non-negative integer row count",
+                span,
+            ));
+        }
+    }
+
+    if !has_digits {
+        return Err(Diagnostic::new(
+            "`take` requires a non-negative integer row count",
+            span,
+        ));
+    }
 
     Ok(Transform::Take { count })
 }

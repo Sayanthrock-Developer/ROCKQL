@@ -24,13 +24,19 @@ impl FromStr for Dialect {
     type Err = String;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        match value.to_ascii_lowercase().as_str() {
-            "generic" | "sql" => Ok(Self::Generic),
-            "sqlite" | "sqlite3" => Ok(Self::Sqlite),
-            "postgres" | "postgresql" => Ok(Self::Postgres),
-            _ => Err(format!(
+        // ⚡ Bolt Optimization: Use `eq_ignore_ascii_case` to avoid allocating
+        // a new String via `to_ascii_lowercase()` on every call.
+        if value.eq_ignore_ascii_case("generic") || value.eq_ignore_ascii_case("sql") {
+            Ok(Self::Generic)
+        } else if value.eq_ignore_ascii_case("sqlite") || value.eq_ignore_ascii_case("sqlite3") {
+            Ok(Self::Sqlite)
+        } else if value.eq_ignore_ascii_case("postgres") || value.eq_ignore_ascii_case("postgresql")
+        {
+            Ok(Self::Postgres)
+        } else {
+            Err(format!(
                 "unsupported SQL target `{value}`; expected generic, sqlite, or postgres"
-            )),
+            ))
         }
     }
 }
@@ -119,13 +125,25 @@ pub fn compile(query: &Query, dialect: Dialect) -> Result<String, SqlError> {
 
     if !filters.is_empty() {
         sql.push_str("WHERE ");
-        sql.push_str(&filters.join("\n  AND "));
+        // ⚡ Bolt Optimization: Avoid allocating an intermediate String from `.join()`
+        for (index, filter) in filters.iter().enumerate() {
+            sql.push_str(filter);
+            if index + 1 < filters.len() {
+                sql.push_str("\n  AND ");
+            }
+        }
         sql.push('\n');
     }
 
     if !sort_items.is_empty() {
         sql.push_str("ORDER BY ");
-        sql.push_str(&sort_items.join(", "));
+        // ⚡ Bolt Optimization: Avoid allocating an intermediate String from `.join()`
+        for (index, item) in sort_items.iter().enumerate() {
+            sql.push_str(item);
+            if index + 1 < sort_items.len() {
+                sql.push_str(", ");
+            }
+        }
         sql.push('\n');
     }
 

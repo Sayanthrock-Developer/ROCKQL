@@ -70,16 +70,16 @@ fn split_segments(source: &str) -> Vec<Segment> {
     for (line_index, line) in source.lines().enumerate() {
         let mut start = 0;
 
-        for (byte_index, character) in line.char_indices() {
-            if character == '|' {
-                push_segment(
-                    &mut segments,
-                    &line[start..byte_index],
-                    line_index + 1,
-                    start,
-                );
-                start = byte_index + character.len_utf8();
-            }
+        // ⚡ Bolt Optimization: Use `match_indices` instead of `char_indices`
+        // to avoid decoding overhead for every character in the string.
+        for (byte_index, _) in line.match_indices('|') {
+            push_segment(
+                &mut segments,
+                &line[start..byte_index],
+                line_index + 1,
+                start,
+            );
+            start = byte_index + 1; // '|' is exactly 1 byte
         }
 
         push_segment(&mut segments, &line[start..], line_index + 1, start);
@@ -102,9 +102,12 @@ fn push_segment(segments: &mut Vec<Segment>, raw: &str, line: usize, byte_start:
 }
 
 fn parse_transform(text: &str, span: Span) -> Result<Transform, Diagnostic> {
+    // ⚡ Bolt Optimization: Use byte iteration to find the first ASCII whitespace,
+    // avoiding UTF-8 decoding overhead in `.char_indices()`.
     let keyword_end = text
-        .char_indices()
-        .find_map(|(index, character)| character.is_whitespace().then_some(index))
+        .as_bytes()
+        .iter()
+        .position(|&b| b.is_ascii_whitespace())
         .unwrap_or(text.len());
 
     let keyword = &text[..keyword_end];

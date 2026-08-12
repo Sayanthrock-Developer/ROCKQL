@@ -24,13 +24,18 @@ impl FromStr for Dialect {
     type Err = String;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        match value.to_ascii_lowercase().as_str() {
-            "generic" | "sql" => Ok(Self::Generic),
-            "sqlite" | "sqlite3" => Ok(Self::Sqlite),
-            "postgres" | "postgresql" => Ok(Self::Postgres),
-            _ => Err(format!(
+        // ⚡ Bolt Optimization: Use `eq_ignore_ascii_case` to avoid intermediate String allocation from `to_ascii_lowercase()`
+        if value.eq_ignore_ascii_case("generic") || value.eq_ignore_ascii_case("sql") {
+            Ok(Self::Generic)
+        } else if value.eq_ignore_ascii_case("sqlite") || value.eq_ignore_ascii_case("sqlite3") {
+            Ok(Self::Sqlite)
+        } else if value.eq_ignore_ascii_case("postgres") || value.eq_ignore_ascii_case("postgresql")
+        {
+            Ok(Self::Postgres)
+        } else {
+            Err(format!(
                 "unsupported SQL target `{value}`; expected generic, sqlite, or postgres"
-            )),
+            ))
         }
     }
 }

@@ -6,3 +6,7 @@
 **Learning:** In `split_segments`, constructing `Segment` previously performed `text.to_owned()` for every split segment. This caused unnecessary memory allocation, as the parsed segment string could just borrow from the original input `&str`.
 
 **Action:** Update parsing intermediate structs (like `Segment`) to carry string slices (`&'a str`) representing chunks of the input string rather than owning `String`s when they are only used briefly to route segments to transformation parsers.
+
+## 2024-05-18 - [Avoid UTF-8 overhead for ASCII search in parsing]
+**Learning:** In RockQL's parser, iterating with `.char_indices()` to search for simple ASCII characters (like `'|'` or whitespace) adds unnecessary UTF-8 decoding overhead. This is a noticeable bottleneck for long string processing.
+**Action:** Use string methods that operate at the byte level directly, such as `.match_indices()` or `.as_bytes().iter().position()`, to avoid the overhead of decoding UTF-8 when searching for ASCII markers or boundaries.

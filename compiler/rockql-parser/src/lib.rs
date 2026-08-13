@@ -28,8 +28,8 @@ impl Display for Diagnostic {
 }
 
 #[derive(Debug)]
-struct Segment {
-    text: String,
+struct Segment<'a> {
+    text: &'a str,
     span: Span,
 }
 
@@ -47,7 +47,7 @@ pub fn parse(source: &str) -> Result<Query, Vec<Diagnostic>> {
     let mut diagnostics = Vec::new();
 
     for segment in segments {
-        match parse_transform(&segment.text, segment.span) {
+        match parse_transform(segment.text, segment.span) {
             Ok(transform) => transforms.push(SpannedTransform::new(segment.span, transform)),
             Err(diagnostic) => diagnostics.push(diagnostic),
         }
@@ -64,7 +64,7 @@ pub fn format_source(source: &str) -> Result<String, Vec<Diagnostic>> {
     parse(source).map(|query| format!("{query}\n"))
 }
 
-fn split_segments(source: &str) -> Vec<Segment> {
+fn split_segments(source: &str) -> Vec<Segment<'_>> {
     let mut segments = Vec::new();
 
     for (line_index, line) in source.lines().enumerate() {
@@ -88,7 +88,7 @@ fn split_segments(source: &str) -> Vec<Segment> {
     segments
 }
 
-fn push_segment(segments: &mut Vec<Segment>, raw: &str, line: usize, byte_start: usize) {
+fn push_segment<'a>(segments: &mut Vec<Segment<'a>>, raw: &'a str, line: usize, byte_start: usize) {
     let text = raw.trim();
     if text.is_empty() {
         return;
@@ -96,7 +96,7 @@ fn push_segment(segments: &mut Vec<Segment>, raw: &str, line: usize, byte_start:
 
     let leading_bytes = raw.find(text).unwrap_or(0);
     segments.push(Segment {
-        text: text.to_owned(),
+        text,
         span: Span::new(line, byte_start + leading_bytes + 1),
     });
 }

@@ -6,3 +6,6 @@
 **Learning:** In `split_segments`, constructing `Segment` previously performed `text.to_owned()` for every split segment. This caused unnecessary memory allocation, as the parsed segment string could just borrow from the original input `&str`.
 
 **Action:** Update parsing intermediate structs (like `Segment`) to carry string slices (`&'a str`) representing chunks of the input string rather than owning `String`s when they are only used briefly to route segments to transformation parsers.
+## 2024-08-14 - [Rust String Parsing - Whitespace Semantics Regression]
+**Learning:** When optimizing whitespace scanning in Rust parsing loops by replacing `.char_indices()` with byte-level ASCII checks (e.g., `as_bytes().iter().position(|b| b.is_ascii_whitespace())`), it can introduce a subtle functional regression. Rust's `char::is_whitespace()` matches all Unicode whitespace characters (like non-breaking spaces), whereas `is_ascii_whitespace()` only matches standard ASCII whitespace.
+**Action:** When exact Unicode semantics must be preserved while optimizing, use `.find()` (e.g., `text.find(char::is_whitespace)`) instead of dropping down to byte-level operations. This leverages internal optimizations while preserving the exact semantic meaning of the original code.

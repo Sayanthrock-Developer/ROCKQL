@@ -70,16 +70,16 @@ fn split_segments(source: &str) -> Vec<Segment<'_>> {
     for (line_index, line) in source.lines().enumerate() {
         let mut start = 0;
 
-        for (byte_index, character) in line.char_indices() {
-            if character == '|' {
-                push_segment(
-                    &mut segments,
-                    &line[start..byte_index],
-                    line_index + 1,
-                    start,
-                );
-                start = byte_index + character.len_utf8();
-            }
+        // ⚡ Bolt Optimization: Use `match_indices` instead of `char_indices`
+        // to avoid UTF-8 decoding overhead when searching for an ASCII character.
+        for (byte_index, _) in line.match_indices('|') {
+            push_segment(
+                &mut segments,
+                &line[start..byte_index],
+                line_index + 1,
+                start,
+            );
+            start = byte_index + 1; // '|' is 1 byte
         }
 
         push_segment(&mut segments, &line[start..], line_index + 1, start);
@@ -102,10 +102,9 @@ fn push_segment<'a>(segments: &mut Vec<Segment<'a>>, raw: &'a str, line: usize, 
 }
 
 fn parse_transform(text: &str, span: Span) -> Result<Transform, Diagnostic> {
-    let keyword_end = text
-        .char_indices()
-        .find_map(|(index, character)| character.is_whitespace().then_some(index))
-        .unwrap_or(text.len());
+    // ⚡ Bolt Optimization: Use `find(char::is_whitespace)` instead of `char_indices`
+    // to optimize whitespace scanning while preserving exact Unicode whitespace semantics.
+    let keyword_end = text.find(char::is_whitespace).unwrap_or(text.len());
 
     let keyword = &text[..keyword_end];
     let rest = text[keyword_end..].trim();

@@ -9,3 +9,6 @@
 ## 2024-08-14 - [Rust String Parsing - Whitespace Semantics Regression]
 **Learning:** When optimizing whitespace scanning in Rust parsing loops by replacing `.char_indices()` with byte-level ASCII checks (e.g., `as_bytes().iter().position(|b| b.is_ascii_whitespace())`), it can introduce a subtle functional regression. Rust's `char::is_whitespace()` matches all Unicode whitespace characters (like non-breaking spaces), whereas `is_ascii_whitespace()` only matches standard ASCII whitespace.
 **Action:** When exact Unicode semantics must be preserved while optimizing, use `.find()` (e.g., `text.find(char::is_whitespace)`) instead of dropping down to byte-level operations. This leverages internal optimizations while preserving the exact semantic meaning of the original code.
+## 2024-08-15 - [Rust String Parsing - Hot Path Byte Iteration]
+**Learning:** In very hot parsing loops where the majority of characters are ASCII (like SQL expressions), `.char_indices()` introduces noticeable overhead because it decodes UTF-8 for every character.
+**Action:** Iterate over `.as_bytes()` using a manual index. If `byte.is_ascii()` is true, cast it to `char` and increment the index by 1. Only decode UTF-8 using `expression[i..].chars().next().unwrap()` when a non-ASCII byte is encountered, advancing the index by the resulting character's `len_utf8()`.

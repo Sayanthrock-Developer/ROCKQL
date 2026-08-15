@@ -182,9 +182,20 @@ fn normalize_expression(expression: &str, _dialect: Dialect) -> String {
     };
 
     let bytes = expression.as_bytes();
-    let mut chars = expression.char_indices().peekable();
+    let mut i = 0;
 
-    while let Some((i, character)) = chars.next() {
+    while i < bytes.len() {
+        let b = bytes[i];
+
+        let character = if b.is_ascii() {
+            i += 1;
+            b as char
+        } else {
+            let ch = expression[i..].chars().next().unwrap();
+            i += ch.len_utf8();
+            ch
+        };
+
         if let Some(active_quote) = quote {
             output.push(character);
             if character == active_quote {
@@ -202,11 +213,16 @@ fn normalize_expression(expression: &str, _dialect: Dialect) -> String {
             quote = Some(character);
         } else if character.is_ascii_alphanumeric() || character == '_' {
             // Handle numeric separators
+            let current_i = if character.is_ascii() {
+                i - 1
+            } else {
+                i - character.len_utf8()
+            };
             if character == '_'
-                && i > 0
-                && i + 1 < bytes.len()
-                && bytes[i - 1].is_ascii_digit()
-                && bytes[i + 1].is_ascii_digit()
+                && current_i > 0
+                && current_i + 1 < bytes.len()
+                && bytes[current_i - 1].is_ascii_digit()
+                && bytes[current_i + 1].is_ascii_digit()
             {
                 continue; // Skip the underscore
             }
@@ -223,16 +239,16 @@ fn normalize_expression(expression: &str, _dialect: Dialect) -> String {
 
             // Handle operators != and ==
             if character == '!' {
-                if let Some(&(_, '=')) = chars.peek() {
+                if i < bytes.len() && bytes[i] == b'=' {
                     output.push_str("<>");
-                    chars.next(); // Consume '='
+                    i += 1; // Consume '='
                 } else {
                     output.push(character);
                 }
             } else if character == '=' {
-                if let Some(&(_, '=')) = chars.peek() {
+                if i < bytes.len() && bytes[i] == b'=' {
                     output.push('=');
-                    chars.next(); // Consume second '='
+                    i += 1; // Consume second '='
                 } else {
                     output.push(character);
                 }

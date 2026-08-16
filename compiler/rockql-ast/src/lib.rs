@@ -64,17 +64,32 @@ impl Display for Transform {
         match self {
             Self::From { source } => write!(formatter, "from {source}"),
             Self::Filter { expression } => write!(formatter, "filter {expression}"),
-            Self::Select { columns } => write!(formatter, "select {}", columns.join(", ")),
+            Self::Select { columns } => {
+                // ⚡ Bolt Optimization: Prevent intermediate String and Vec allocation
+                // when formatting selected columns.
+                write!(formatter, "select ")?;
+                for (index, column) in columns.iter().enumerate() {
+                    if index > 0 {
+                        write!(formatter, ", ")?;
+                    }
+                    write!(formatter, "{}", column)?;
+                }
+                Ok(())
+            }
             Self::Derive { name, expression } => {
                 write!(formatter, "derive {name} = {expression}")
             }
             Self::Sort { items } => {
-                let values = items
-                    .iter()
-                    .map(ToString::to_string)
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                write!(formatter, "sort {{{values}}}")
+                // ⚡ Bolt Optimization: Prevent temporary vectors and string allocations
+                // by directly writing sort items to the formatter.
+                write!(formatter, "sort {{")?;
+                for (index, item) in items.iter().enumerate() {
+                    if index > 0 {
+                        write!(formatter, ", ")?;
+                    }
+                    write!(formatter, "{}", item)?;
+                }
+                write!(formatter, "}}")
             }
             Self::Take { count } => write!(formatter, "take {count}"),
         }

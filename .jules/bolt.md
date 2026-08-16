@@ -9,3 +9,6 @@
 ## 2024-08-14 - [Rust String Parsing - Whitespace Semantics Regression]
 **Learning:** When optimizing whitespace scanning in Rust parsing loops by replacing `.char_indices()` with byte-level ASCII checks (e.g., `as_bytes().iter().position(|b| b.is_ascii_whitespace())`), it can introduce a subtle functional regression. Rust's `char::is_whitespace()` matches all Unicode whitespace characters (like non-breaking spaces), whereas `is_ascii_whitespace()` only matches standard ASCII whitespace.
 **Action:** When exact Unicode semantics must be preserved while optimizing, use `.find()` (e.g., `text.find(char::is_whitespace)`) instead of dropping down to byte-level operations. This leverages internal optimizations while preserving the exact semantic meaning of the original code.
+## 2026-08-16 - [Rust String Concatenation and Display Formatting Overhead]
+**Learning:** In hot paths like SQL compilation and AST formatting, relying on `.join()` and intermediate `.map().collect::<Vec<_>>().join()` operations causes substantial unnecessary heap allocation for short-lived Strings and Vecs.
+**Action:** When concatenating multiple strings or formatting values iteratively in Rust, iterate directly over the items and write directly to the buffer or `Formatter` rather than building intermediate `Vec`s and using `.join()`. This reduces memory overhead and improves performance.

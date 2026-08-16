@@ -123,14 +123,28 @@ pub fn compile(query: &Query, dialect: Dialect) -> Result<String, SqlError> {
     sql.push('\n');
 
     if !filters.is_empty() {
+        // ⚡ Bolt Optimization: Avoid intermediate String allocation from `.join()`
+        // by pushing directly into the output buffer.
         sql.push_str("WHERE ");
-        sql.push_str(&filters.join("\n  AND "));
+        for (index, filter) in filters.iter().enumerate() {
+            if index > 0 {
+                sql.push_str("\n  AND ");
+            }
+            sql.push_str(filter);
+        }
         sql.push('\n');
     }
 
     if !sort_items.is_empty() {
+        // ⚡ Bolt Optimization: Avoid intermediate String allocation from `.join()`
+        // by pushing directly into the output buffer.
         sql.push_str("ORDER BY ");
-        sql.push_str(&sort_items.join(", "));
+        for (index, item) in sort_items.iter().enumerate() {
+            if index > 0 {
+                sql.push_str(", ");
+            }
+            sql.push_str(item);
+        }
         sql.push('\n');
     }
 

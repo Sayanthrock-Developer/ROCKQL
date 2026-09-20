@@ -8,7 +8,7 @@ Write queries as a clear top-to-bottom flow. Compile them into standard SQL.
 
 <br/>
 
-[![Rust](https://img.shields.io/badge/Rust-1.XX-black?logo=rust)](https://www.rust-lang.org/)
+[![Rust](https://img.shields.io/badge/Rust-1.97-black?logo=rust)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![CI](https://github.com/Sayanthrock-Developer/ROCKQL/actions/workflows/ci.yml/badge.svg)](https://github.com/Sayanthrock-Developer/ROCKQL/actions)
 [![Repository](https://img.shields.io/badge/GitHub-ROCKQL-181717?logo=github)](https://github.com/Sayanthrock-Developer/ROCKQL)

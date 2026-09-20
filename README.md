@@ -150,44 +150,63 @@ from users | filter active == true | select id, name | take 10
 
 ## 🏗️ Compiler architecture
 
+**Legend:** `● built` · `○ planned`
+
 ```text
-┌──────────────────┐
-│   RockQL source  │
-└────────┬─────────┘
-         ↓
-┌──────────────────┐
-│  Lexer / Parser  │
-└────────┬─────────┘
-         ↓
-┌──────────────────┐
-│  Abstract Syntax │
-│       Tree       │
-└────────┬─────────┘
-         ↓
-┌──────────────────┐
-│ Name / Type      │
-│ Resolver         │
-└────────┬─────────┘
-         ↓
-┌──────────────────┐
-│ Relational IR    │
-└────────┬─────────┘
-         ↓
-┌──────────────────┐
-│ Query Optimiser  │
-└────────┬─────────┘
-         ↓
-┌──────────────────┐
-│ SQL Dialect      │
-│ Generator        │
-└────────┬─────────┘
-         ↓
-┌──────────────────┐
-│   Formatted SQL  │
-└──────────────────┘
+● RockQL source
+        ↓
+● Lexer / Parser
+        ↓
+● Abstract Syntax Tree
+        ↓
+○ Name / Type Resolver
+        ↓
+○ Relational IR
+        ↓
+○ Query Optimiser
+        ↓
+● SQL Dialect Generator
+        ↓
+● Formatted SQL
 ```
 
-The repository currently provides the compiler foundation; resolver, relational IR, optimisation, and additional tooling are part of the longer-term direction.
+The current repository implements the parser/AST and SQL-generation foundation. Resolver, relational IR, optimisation, and additional tooling are planned layers rather than implemented components.
+
+---
+
+## 🔎 RockQL compared with adjacent tools
+
+RockQL is an independent Rust implementation with its own pipeline syntax, AST, parser, and SQL generators. It occupies a similar problem space to tools such as PRQL and dataframe-style query systems, but this repository does not reuse their implementation.
+
+| Concern | RockQL | PRQL | SQL |
+| --- | --- | --- | --- |
+| Pipeline-oriented source | Yes | Yes | No |
+| Compiles to SQL | Yes | Yes | N/A |
+| Rust compiler workspace | Yes | Yes | N/A |
+| Structured AST in this repository | Yes | Yes | N/A |
+| Current maturity | v0.1 foundation | Established project | Standard |
+
+This is a factual feature comparison, not a compatibility claim. SQL output and supported operations depend on the current RockQL implementation.
+
+---
+
+## 🧪 Real examples
+
+The repository keeps examples intentionally within the implemented v0.1 language:
+
+- `examples/employees.rockql` — filtering, deriving, sorting, and limiting rows.
+- `select` pipelines — choose columns before generating SQL.
+- Pipe syntax — compose the same supported transformations on one line.
+
+Joins, grouping, aggregation, variables, and functions are **not implemented yet**; they remain v0.3 design targets.
+
+---
+
+## 🌐 Web playground status
+
+A browser playground is planned for **v0.2**. The current GitHub Pages site is documentation and project presentation only; it does not pretend to compile RockQL in the browser.
+
+The intended v0.2 direction is a real WebAssembly compiler path with diagnostics and shareable queries, backed by the same compiler crates rather than a separate mock implementation.
 
 ---
 

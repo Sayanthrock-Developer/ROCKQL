@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="RockQL — readable data pipelines compiled to SQL.">
+  <title>RockQL — Readable pipelines → SQL</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0b0d10; --panel:#111418; --line:#30363d; --text:#f0f3f6; --muted:#9da7b3; --accent:#fff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:16px/1.65 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--text); background:var(--bg); }
+    a { color:inherit; }
+    .wrap { width:min(1080px,calc(100% - 40px)); margin:auto; }
+    header { padding:28px 0; border-bottom:1px solid var(--line); }
+    nav { display:flex; align-items:center; justify-content:space-between; gap:20px; }
+    .brand { font-weight:800; letter-spacing:.02em; text-decoration:none; }
+    .links { display:flex; gap:20px; color:var(--muted); }
+    .links a { text-decoration:none; }
+    .links a:hover { color:var(--text); }
+    main { padding:76px 0 56px; }
+    .eyebrow { color:var(--muted); font-weight:700; letter-spacing:.12em; text-transform:uppercase; font-size:.78rem; }
+    h1 { max-width:800px; margin:12px 0 18px; font-size:clamp(2.7rem,8vw,5.7rem); line-height:.98; letter-spacing:-.055em; }
+    .lead { max-width:680px; color:var(--muted); font-size:1.18rem; }
+    .actions { display:flex; flex-wrap:wrap; gap:12px; margin:28px 0 48px; }
+    .button { display:inline-block; padding:11px 17px; border:1px solid var(--line); border-radius:12px; text-decoration:none; font-weight:700; }
+    .primary { background:var(--accent); color:#0b0d10; border-color:var(--accent); }
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .card { padding:22px; border:1px solid var(--line); border-radius:18px; background:var(--panel); }
+    .card h2 { margin:0 0 8px; font-size:1.05rem; }
+    .card p { margin:0; color:var(--muted); }
+    .code { margin-top:22px; overflow:auto; padding:22px; border:1px solid var(--line); border-radius:18px; background:#07090b; }
+    pre { margin:0; min-width:max-content; }
+    section { padding:58px 0; }
+    footer { padding:30px 0 48px; color:var(--muted); border-top:1px solid var(--line); }
+    @media (max-width:760px) { .links { display:none; } .grid { grid-template-columns:1fr; } main { padding-top:52px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <nav aria-label="Primary">
+        <a class="brand" href="./">RockQL</a>
+        <div class="links">
+          <a href="#language">Language</a>
+          <a href="#compiler">Compiler</a>
+          <a href="https://github.com/Sayanthrock-Developer/ROCKQL">GitHub</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="eyebrow">Open-source query language</div>
+    <h1>Readable pipelines.<br>Standard SQL.</h1>
+    <p class="lead">RockQL lets you describe data transformations as a clear top-to-bottom pipeline, then compile that source into SQL.</p>
+    <div class="actions">
+      <a class="button primary" href="https://github.com/Sayanthrock-Developer/ROCKQL">View on GitHub</a>
+      <a class="button" href="https://github.com/Sayanthrock-Developer/ROCKQL/blob/main/README.md">Read the docs</a>
+    </div>
+
+    <section id="language">
+      <div class="grid">
+        <article class="card"><h2>Readable</h2><p>Queries follow the data flow instead of forcing every transformation into SQL clause order.</p></article>
+        <article class="card"><h2>Composable</h2><p>Build a query from small pipeline operations such as filter, select, derive, sort, and take.</p></article>
+        <article class="card"><h2>Portable</h2><p>Keep the language separate from SQL generation so database dialects can evolve independently.</p></article>
+      </div>
+      <div class="code" aria-label="RockQL example">
+<pre><code>from employees
+filter salary &gt; 50_000
+derive yearly_salary = salary * 12
+sort {-yearly_salary}
+take 10</code></pre>
+      </div>
+    </section>
+
+    <section id="compiler">
+      <div class="eyebrow">Compiler flow</div>
+      <h2>Source → parser → AST → SQL</h2>
+      <p class="lead">The repository contains the Rust compiler foundation, parser diagnostics, SQL generation, and CLI tooling.</p>
+      <div class="code"><pre><code>RockQL source
+     ↓
+Lexer / Parser
+     ↓
+AST
+     ↓
+SQL dialect generator
+     ↓
+Formatted SQL</code></pre></div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <strong>RockQL</strong> · Apache-2.0 ·
+      <a href="https://github.com/Sayanthrock-Developer/ROCKQL">Source code</a>
+    </div>
+  </footer>
+</body>
+</html>

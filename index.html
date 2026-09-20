@@ -74,9 +74,9 @@ take 10</code></pre>
     </section>
 
     <section id="compiler">
-      <div class="eyebrow">Compiler flow</div>
+      <div class="eyebrow">Compiler flow · v0.1</div>
       <h2>Source → parser → AST → SQL</h2>
-      <p class="lead">The repository contains the Rust compiler foundation, parser diagnostics, SQL generation, and CLI tooling.</p>
+      <p class="lead">Built today: parser, AST, SQL generation, and CLI tooling. Planned: resolver, relational IR, optimisation, and a real WebAssembly playground.</p>
       <div class="code"><pre><code>RockQL source
      ↓
 Lexer / Parser
@@ -85,7 +85,10 @@ AST
      ↓
 SQL dialect generator
      ↓
-Formatted SQL</code></pre></div>
+Formatted SQL
+
+Built: parser · AST · SQL
+Planned: resolver · IR · optimiser</code></pre></div>
     </section>
   </main>
 

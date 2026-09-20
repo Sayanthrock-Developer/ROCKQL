@@ -1,8 +1,27 @@
+<div align="center">
+
 # RockQL
 
-> **Readable data pipelines for every database.**
+### Readable data pipelines for every database.
 
-RockQL is an open-source query language and compiler for writing database queries as readable top-to-bottom pipelines and compiling them into standard SQL.
+Write queries as a clear top-to-bottom flow. Compile them into standard SQL.
+
+<br/>
+
+[![Rust](https://img.shields.io/badge/Rust-1.XX-black?logo=rust)](https://www.rust-lang.org/)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![CI](https://github.com/Sayanthrock-Developer/ROCKQL/actions/workflows/ci.yml/badge.svg)](https://github.com/Sayanthrock-Developer/ROCKQL/actions)
+[![Repository](https://img.shields.io/badge/GitHub-ROCKQL-181717?logo=github)](https://github.com/Sayanthrock-Developer/ROCKQL)
+
+</div>
+
+---
+
+## What is RockQL?
+
+**RockQL** is an open-source query language and compiler for expressing database queries as readable pipelines and generating standard SQL.
+
+Instead of starting with SQL clauses, you describe the data flow:
 
 ```rockql
 from employees
@@ -11,6 +30,8 @@ derive yearly_salary = salary * 12
 sort {-yearly_salary}
 take 10
 ```
+
+RockQL can compile that pipeline into SQL:
 
 ```sql
 SELECT
@@ -22,23 +43,24 @@ ORDER BY yearly_salary DESC
 LIMIT 10;
 ```
 
-**Write the flow. Generate the SQL.**
+> **Write the flow. Generate the SQL.**
 
-## Status
+---
 
-RockQL is at the compiler-foundation stage. The first implementation includes:
+## ✦ Why RockQL?
 
-- A Rust workspace.
-- A serialisable abstract syntax tree.
-- A parser with line and column diagnostics.
-- `from`, `filter`, `select`, `derive`, `sort`, and `take`.
-- Generic SQL, SQLite, and PostgreSQL output.
-- `compile`, `check`, `ast`, and `format` CLI commands.
-- Unit tests and GitHub Actions CI.
+- **Readable** — queries follow a natural top-to-bottom data flow.
+- **Composable** — build a query from small transformations.
+- **Portable** — generate SQL for supported database targets.
+- **Diagnosable** — parser errors include line and column information.
+- **Tool-friendly** — the compiler foundation is built in Rust with a serialisable AST.
+- **Format-aware** — source can be formatted consistently through the CLI.
 
-The language and APIs are experimental until the v1.0 compatibility policy is published.
+---
 
-## Install from source
+## ⚡ Quick start
+
+### Build from source
 
 ```bash
 git clone https://github.com/Sayanthrock-Developer/ROCKQL.git
@@ -46,41 +68,9 @@ cd ROCKQL
 cargo install --path compiler/rockql-cli
 ```
 
-## CLI
+### Compile a query
 
-Compile a file:
-
-```bash
-rockql compile query.rockql --target postgres
-```
-
-Compile stdin:
-
-```bash
-echo "from users | filter active == true | take 10" \
-  | rockql compile --target sqlite
-```
-
-Validate syntax:
-
-```bash
-rockql check query.rockql
-```
-
-Print the AST:
-
-```bash
-rockql ast query.rockql
-```
-
-Format source:
-
-```bash
-rockql format query.rockql
-rockql format query.rockql --write
-```
-
-## Initial syntax
+Create `query.rockql`:
 
 ```rockql
 from orders
@@ -91,68 +81,226 @@ sort {-amount}
 take 20
 ```
 
-Supported transformations:
+Then:
 
-- `from`
-- `filter`
-- `select`
-- `derive`
-- `sort`
-- `take`
-
-Both newline pipelines and `|`-separated pipelines are accepted.
-
-## Workspace
-
-```text
-compiler/
-├── rockql-ast/       Shared syntax model
-├── rockql-parser/    Source parser and diagnostics
-├── rockql-sql/       SQL dialect generator
-└── rockql-cli/       Cross-platform command-line interface
+```bash
+rockql compile query.rockql --target postgres
 ```
 
-Planned components include the resolver, relational IR, optimiser, formatter crate, WebAssembly bindings, browser playground, Android app, desktop app, language server, Tree-sitter grammar, and VS Code extension.
+### Pipe a query through stdin
 
-## Compiler direction
-
-```text
-RockQL source
-    ↓
-Lexer / parser
-    ↓
-Abstract Syntax Tree
-    ↓
-Name and type resolver
-    ↓
-Relational intermediate representation
-    ↓
-Query optimiser
-    ↓
-SQL dialect generator
-    ↓
-Formatted SQL
+```bash
+echo "from users | filter active == true | take 10" \
+  | rockql compile --target sqlite
 ```
 
-## Roadmap
+---
 
-- **v0.1:** compiler foundation, SQLite generator, CLI, tests.
-- **v0.2:** WebAssembly compiler, Monaco playground, diagnostics, query sharing.
-- **v0.3:** joins, grouping, aggregation, variables, functions, PostgreSQL and MySQL.
-- **v0.4:** formatter, language server, VS Code extension, Tree-sitter grammar.
-- **v0.5:** visual pipeline editor, schema browser, DuckDB, CSV/JSON/Parquet.
-- **v1.0:** stable syntax, compatibility policy, benchmarks, signed releases, Android app, JavaScript and Python bindings.
+## 🧰 CLI
 
-## Project boundaries
+| Command | Purpose |
+| --- | --- |
+| `rockql compile` | Compile RockQL into SQL |
+| `rockql check` | Validate RockQL syntax |
+| `rockql ast` | Print the parsed AST |
+| `rockql format` | Format RockQL source |
 
-Early RockQL versions focus on querying and transforming data. Database administration, migrations, write operations, cloud credential storage, team collaboration, paid AI services, and complex optimisation are intentionally out of scope.
+Examples:
 
-## Design direction
+```bash
+rockql check query.rockql
+rockql ast query.rockql
+rockql format query.rockql
+rockql format query.rockql --write
+```
 
-RockQL interfaces use charcoal and near-black surfaces, white primary text, muted supporting text, a restrained electric-blue or violet accent, rounded surfaces, clean monospaced code areas, subtle glass layers, and strong contrast without dashboard clutter.
+---
 
-## Licence
+## 🧩 Language foundation
 
-Licensed under the [Apache License 2.0](LICENSE).
+The initial language supports:
+
+```text
+from
+filter
+select
+derive
+sort
+take
+```
+
+Both styles are accepted:
+
+### Multiline
+
+```rockql
+from users
+filter active == true
+select id, name
+take 10
+```
+
+### Pipe-separated
+
+```rockql
+from users | filter active == true | select id, name | take 10
+```
+
+---
+
+## 🏗️ Compiler architecture
+
+```text
+┌──────────────────┐
+│   RockQL source  │
+└────────┬─────────┘
+         ↓
+┌──────────────────┐
+│  Lexer / Parser  │
+└────────┬─────────┘
+         ↓
+┌──────────────────┐
+│  Abstract Syntax │
+│       Tree       │
+└────────┬─────────┘
+         ↓
+┌──────────────────┐
+│ Name / Type      │
+│ Resolver         │
+└────────┬─────────┘
+         ↓
+┌──────────────────┐
+│ Relational IR    │
+└────────┬─────────┘
+         ↓
+┌──────────────────┐
+│ Query Optimiser  │
+└────────┬─────────┘
+         ↓
+┌──────────────────┐
+│ SQL Dialect      │
+│ Generator        │
+└────────┬─────────┘
+         ↓
+┌──────────────────┐
+│   Formatted SQL  │
+└──────────────────┘
+```
+
+The repository currently provides the compiler foundation; resolver, relational IR, optimisation, and additional tooling are part of the longer-term direction.
+
+---
+
+## 📦 Workspace
+
+```text
+ROCKQL/
+└── compiler/
+    ├── rockql-ast/       Shared syntax model
+    ├── rockql-parser/    Parser and diagnostics
+    ├── rockql-sql/       SQL dialect generation
+    └── rockql-cli/       Cross-platform CLI
+```
+
+---
+
+## 🗺️ Roadmap
+
+| Version | Direction |
+| --- | --- |
+| **v0.1** | Compiler foundation, SQLite generator, CLI, tests |
+| **v0.2** | WebAssembly compiler, Monaco playground, diagnostics, query sharing |
+| **v0.3** | Joins, grouping, aggregation, variables, functions, PostgreSQL and MySQL |
+| **v0.4** | Formatter, language server, VS Code extension, Tree-sitter grammar |
+| **v0.5** | Visual pipeline editor, schema browser, DuckDB, CSV/JSON/Parquet |
+| **v1.0** | Stable syntax, compatibility policy, benchmarks, signed releases, Android app, JavaScript and Python bindings |
+
+The roadmap is directional; features may change as the language and compiler architecture evolve.
+
+---
+
+## 🔬 Project status
+
+RockQL is currently at the **compiler-foundation stage**.
+
+The current implementation includes:
+
+- Rust workspace architecture
+- Serialisable AST
+- Parser diagnostics with line and column information
+- Core pipeline operations
+- Generic SQL, SQLite, and PostgreSQL output
+- `compile`, `check`, `ast`, and `format` commands
+- Unit tests
+- GitHub Actions CI
+
+The language and APIs are experimental until the v1.0 compatibility policy is published.
+
+---
+
+## 🎯 Scope
+
+RockQL focuses on **querying and transforming data**.
+
+Early versions intentionally do not focus on:
+
+- Database administration
+- Database migrations
+- Write operations
+- Cloud credential storage
+- Team collaboration
+- Paid AI services
+- Complex optimisation
+
+Keeping these boundaries clear helps the compiler and language evolve around a focused core.
+
+---
+
+## 🧭 Design principles
+
+RockQL is designed around a few simple ideas:
+
+**Readable first**  
+A query should communicate its data flow clearly.
+
+**Compiler-native**  
+The language should have a structured syntax model rather than being a string-rewriting layer.
+
+**Portable output**  
+SQL generation should be separated from the language itself so dialects can evolve independently.
+
+**Useful diagnostics**  
+Errors should point developers toward the actual source location and problem.
+
+**Small core, expandable tooling**  
+The compiler foundation stays focused while playgrounds, editors, bindings, and visual tools can grow around it.
+
+---
+
+## 🤝 Contributing
+
+Issues, ideas, documentation improvements, tests, compiler work, and tooling contributions are welcome.
+
+Before proposing a language change, please consider:
+
+1. Is the syntax readable?
+2. Does it preserve the pipeline model?
+3. Can it be represented cleanly in the AST?
+4. Can SQL generation remain dialect-aware?
+5. Can the behaviour be tested?
+
+---
+
+## 📄 Licence
+
+RockQL is licensed under the [Apache License 2.0](LICENSE).
 
 RockQL is an independent implementation. Third-party source code must retain its original licence, copyright notices, and required attribution.
+
+<div align="center">
+
+**RockQL · Readable pipelines → SQL**
+
+[GitHub](https://github.com/Sayanthrock-Developer/ROCKQL)
+
+</div>
